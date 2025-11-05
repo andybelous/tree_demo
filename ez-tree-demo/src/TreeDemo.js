@@ -12,8 +12,8 @@ export default function TreeDemo() {
 
     // === Сцена, камера, рендерер ===
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff); // <-- белый фон
-    scene.fog = new THREE.FogExp2(0xffffff, 0.002); // лёгкая дымка, чтобы не резало глаза
+    scene.background = new THREE.Color(0xffffff);
+    scene.fog = new THREE.FogExp2(0xffffff, 0.002);
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -46,11 +46,21 @@ export default function TreeDemo() {
     dirLight.shadow.camera.right = 200;
     scene.add(dirLight);
 
-    // === Плоскость под деревьями ===
+    // === Плоскость с текстурой травы ===
     const groundSize = 500;
+    const textureLoader = new THREE.TextureLoader();
+    const grassTexture = textureLoader.load("/textures/grass.jpg");
+    grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
+    grassTexture.repeat.set(40, 40); // повторяем 40x40 раз, чтобы не тянулось
+    grassTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    const groundMaterial = new THREE.MeshStandardMaterial({
+      map: grassTexture,
+    });
+
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(groundSize, groundSize),
-      new THREE.MeshStandardMaterial({ color: 0xe0e0e0 })
+      groundMaterial
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
@@ -63,7 +73,7 @@ export default function TreeDemo() {
     controls.minDistance = 10;
     controls.maxDistance = 300;
 
-    // === Функция для генерации позиций деревьев ===
+    // === Расположение деревьев ===
     const placedPositions = [];
     const minDistance = 40;
     const safeRadius = groundSize / 2 - 40;
@@ -82,7 +92,7 @@ export default function TreeDemo() {
       return pos;
     }
 
-    // === Главное дерево — строго по центру ===
+    // === Главное дерево по центру ===
     const mainTree = new Tree();
     mainTree.loadPreset("Ash Medium");
     mainTree.options.seed = 12345;
@@ -105,7 +115,7 @@ export default function TreeDemo() {
       scene.add(tree);
     }
 
-    // === Центр камеры — середина дерева, не низ ===
+    // === Центр вращения — середина дерева ===
     const box = new THREE.Box3().setFromObject(mainTree);
     const treeCenter = new THREE.Vector3();
     box.getCenter(treeCenter);
@@ -151,7 +161,7 @@ export default function TreeDemo() {
       style={{
         width: "100%",
         height: "100vh",
-        background: "#ffffff", // резервный белый фон
+        background: "#ffffff",
         overflow: "hidden",
       }}
     />

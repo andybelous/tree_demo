@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Tree } from "@dgreenheck/ez-tree";
+import Stats from "stats.js"; // 👈 добавлено
 
 export default function TreeDemo() {
   const mountRef = useRef(null);
@@ -32,6 +33,15 @@ export default function TreeDemo() {
     renderer.shadowMap.enabled = true;
     mountRef.current.appendChild(renderer.domElement);
 
+    // === FPS мониторинг ===
+    const stats = new Stats();
+    stats.showPanel(0); // 0 = FPS, 1 = ms/frame, 2 = memory
+    stats.dom.style.position = "absolute";
+    stats.dom.style.left = "10px";
+    stats.dom.style.top = "10px";
+    stats.dom.style.zIndex = "1000";
+    mountRef.current.appendChild(stats.dom);
+
     // === Свет ===
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0xdddddd, 1.5);
     hemiLight.position.set(0, 200, 0);
@@ -51,13 +61,10 @@ export default function TreeDemo() {
     const textureLoader = new THREE.TextureLoader();
     const grassTexture = textureLoader.load("/textures/grass.jpg");
     grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
-    grassTexture.repeat.set(40, 40); // повторяем 40x40 раз, чтобы не тянулось
+    grassTexture.repeat.set(40, 40);
     grassTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-    const groundMaterial = new THREE.MeshStandardMaterial({
-      map: grassTexture,
-    });
-
+    const groundMaterial = new THREE.MeshStandardMaterial({ map: grassTexture });
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(groundSize, groundSize),
       groundMaterial
@@ -102,7 +109,7 @@ export default function TreeDemo() {
     mainTree.position.set(0, 0, 0);
     scene.add(mainTree);
 
-    // === Остальные 5 деревьев ===
+    // === Остальные деревья ===
     for (let i = 0; i < 20; i++) {
       const tree = new Tree();
       tree.loadPreset("Ash Medium");
@@ -115,7 +122,7 @@ export default function TreeDemo() {
       scene.add(tree);
     }
 
-    // === Центр вращения — середина дерева ===
+    // === Центр вращения ===
     const box = new THREE.Box3().setFromObject(mainTree);
     const treeCenter = new THREE.Vector3();
     box.getCenter(treeCenter);
@@ -125,8 +132,10 @@ export default function TreeDemo() {
     // === Анимация ===
     const animate = () => {
       requestAnimationFrame(animate);
+      stats.begin(); // 👈 начало замера
       controls.update();
       renderer.render(scene, camera);
+      stats.end();   // 👈 конец замера
     };
     animate();
 
@@ -151,6 +160,9 @@ export default function TreeDemo() {
       if (mountRef.current?.contains(renderer.domElement)) {
         mountRef.current.removeChild(renderer.domElement);
       }
+      if (mountRef.current?.contains(stats.dom)) {
+        mountRef.current.removeChild(stats.dom);
+      }
       scene.clear();
     };
   }, []);
@@ -163,6 +175,7 @@ export default function TreeDemo() {
         height: "100vh",
         background: "#ffffff",
         overflow: "hidden",
+        position: "relative",
       }}
     />
   );
